@@ -1,103 +1,92 @@
 <!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Voting Admin</title>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-<main class="wrap">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voting Admin</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap">
+
 <section id="loginBox" class="card">
-  <h1>Voting Admin</h1>
-  <input id="adminKey" type="password" placeholder="Admin password">
-  <button id="adminLogin">Open</button>
+ <h1>Voting Admin</h1>
+ <input id="adminKey" type="password" placeholder="Admin password">
+ <button id="adminLogin">Open</button>
 </section>
 
 <section id="dash" class="hidden">
-  <div class="card">
-    <h2>Election control</h2>
-    <div class="row">
-      <select id="phase">
-        <option>NOMINATION</option>
-        <option>VOTING</option>
-        <option>CLOSED</option>
-      </select>
-      <button id="savePhase">Set phase</button>
-    </div>
-    <label class="option">
-      <input id="allowNames" type="checkbox">
-      <span>Allow live association-name suggestions</span>
-    </label>
+ <div class="card">
+  <h2>Election control</h2>
+  <p class="muted small">Workflow: Association Name Vote → Self-Nomination → Executive Voting → Closed. The same member tokens work through every stage.</p>
+  <div class="row">
+   <select id="phase">
+    <option value="NAME_VOTING">1 — Association Name Vote</option>
+    <option value="NOMINATION">2 — Self-Nomination</option>
+    <option value="EXECUTIVE_VOTING">3 — Executive Voting</option>
+    <option value="CLOSED">4 — Closed</option>
+   </select>
+   <button id="savePhase">Set phase</button>
+  </div>
+  <label class="option"><input id="allowNames" type="checkbox"><span>Allow new association-name suggestions in the first name-voting round</span></label>
+ </div>
+
+ <div id="nameRoundControl" class="card">
+  <h2>Association-name round</h2>
+  <div id="nameRoundStatus" class="notice"></div>
+  <div class="actions">
+   <button id="closeNameRound">Close current name round & reveal results</button>
+   <button id="startRunoff" class="secondary">Start run-off with top two</button>
+  </div>
+  <p class="muted small">If no single name reaches 75%, close the round, review the result, then start a run-off. The same Tokens remain valid. A tie at the second-place cut-off is carried into the run-off rather than being broken arbitrarily.</p>
+ </div>
+
+ <div class="card">
+  <h2>Add member</h2>
+  <p class="muted small">Add a new eligible member and generate a private token.</p>
+  <div class="row"><input id="newMemberName" type="text" placeholder="Full name"><button id="addMemberBtn">Add member & generate token</button></div>
+ </div>
+
+ <div class="card">
+  <h2>Members</h2>
+  <div class="table-scroll"><table>
+   <thead><tr><th>Name</th><th>Name vote</th><th>Nomination</th><th>Executive vote</th><th>Actions</th></tr></thead>
+   <tbody id="members"></tbody>
+  </table></div>
+ </div>
+
+ <div class="card">
+  <h2>Confirmed self-nominations</h2>
+  <div class="table-scroll"><table><thead><tr><th>Position</th><th>Candidate</th></tr></thead><tbody id="noms"></tbody></table></div>
+ </div>
+
+ <div class="card">
+  <h2>Admin password</h2>
+  <input id="newAdminPassword" type="password" placeholder="New admin password (minimum 10 characters)">
+  <input id="confirmAdminPassword" type="password" placeholder="Confirm new admin password" style="margin-top:10px">
+  <button id="changeAdminPassword">Change admin password</button>
+ </div>
+
+ <div class="card results-card">
+  <div class="results-head">
+   <div><h2>Election dashboard</h2><p class="muted small">Live turnout is visible. Detailed choices are hidden while their relevant voting stage is open.</p></div>
+   <button id="showResults">Refresh</button>
   </div>
 
-  <div class="card">
-    <h2>Add member</h2>
-    <p class="muted small">Add a new eligible member and generate a private token.</p>
-    <div class="row">
-      <input id="newMemberName" type="text" placeholder="Full name">
-      <button id="addMemberBtn">Add member & generate token</button>
-    </div>
+  <h3>Association-name vote</h3>
+  <div id="nameTurnoutCards" class="stat-grid"></div>
+  <div id="nameResultsLocked" class="results-locked hidden"></div>
+  <div id="nameDetailedResults" class="hidden">
+   <div id="nameDecision" class="notice"></div>
+   <div id="nameChart"></div>
   </div>
 
-  <div class="card">
-    <h2>Members</h2>
-    <p class="muted small">Change token if needed. Remove is available only before that member has voted.</p>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>Name</th><th>Nomination</th><th>Voted</th><th>Actions</th></tr></thead>
-        <tbody id="members"></tbody>
-      </table>
-    </div>
+  <h3 style="margin-top:32px">Executive vote</h3>
+  <div id="execTurnoutCards" class="stat-grid"></div>
+  <div id="execResultsLocked" class="results-locked hidden"></div>
+  <div id="execDetailedResults" class="hidden">
+   <h3>Final summary table</h3>
+   <div class="table-scroll"><table class="summary-table">
+    <thead><tr><th>Item</th><th>Top result</th><th>Votes</th><th>Share</th></tr></thead>
+    <tbody id="summaryBody"></tbody>
+   </table></div>
+   <div id="positionCharts"></div>
   </div>
-
-  <div class="card">
-    <h2>Confirmed self-nominations</h2>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>Position</th><th>Candidate</th></tr></thead>
-        <tbody id="noms"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Admin password</h2>
-    <p class="muted small">After changing it here, use the new password for future Admin logins.</p>
-    <input id="newAdminPassword" type="password" placeholder="New admin password (minimum 10 characters)">
-    <input id="confirmAdminPassword" type="password" placeholder="Confirm new admin password" style="margin-top:10px">
-    <button id="changeAdminPassword">Change admin password</button>
-  </div>
-
-  <div class="card results-card">
-    <div class="results-head">
-      <div>
-        <h2>Election results</h2>
-        <p id="resultsNote" class="muted small">During voting, only turnout is shown. Detailed results are revealed after the election is CLOSED.</p>
-      </div>
-      <button id="showResults">Refresh results</button>
-    </div>
-
-    <div id="turnoutCards" class="stat-grid"></div>
-    <div id="resultsLocked" class="results-locked hidden"></div>
-
-    <div id="detailedResults" class="hidden">
-      <h3>Summary table</h3>
-      <div class="table-scroll">
-        <table class="summary-table">
-          <thead><tr><th>Item</th><th>Top result</th><th>Votes</th><th>Share</th></tr></thead>
-          <tbody id="summaryBody"></tbody>
-        </table>
-      </div>
-
-      <div id="associationChart" class="result-section"></div>
-      <div id="positionCharts"></div>
-    </div>
-  </div>
+ </div>
 </section>
-</main>
 
-<script src="config.js"></script>
-<script src="admin.js"></script>
-</body>
-</html>
+<script src="config.js"></script><script src="admin.js"></script>
+</body></html>

@@ -1,8 +1,69 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Voting Hub</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap">
-<section class="card"><h1 id="appTitle"></h1><p class="muted">One member, one vote. Voting choices are stored separately from member identity.</p></section>
-<section id="login" class="card"><h2>Enter your voting token</h2><input id="token" type="text" placeholder="VOTE-XXXX-XXXX"><button id="enterBtn">Continue</button><p id="loginMsg" class="hidden"></p></section>
-<section id="member" class="hidden"><div class="card"><b id="memberName"></b> · <span id="phaseBadge" class="badge"></span></div>
-<div id="nominationView" class="card hidden"><h2>Self-nomination</h2><p id="nominationIntro"></p><div class="notice">Select one or more positions, or leave all unchecked if you do not want to nominate yourself.</div><div id="nominationPositions"></div><button id="saveNomination">Save my choice</button><p id="nominationMsg" class="hidden"></p></div>
-<div id="votingView" class="card hidden"><h2>Vote</h2><h3>1. Association name</h3><div id="associationChoices"></div><div id="addNameBox" class="notice"><b>Have another name?</b><p class="small">Add it here. It will appear immediately, be selected for you, and be available to later voters.</p><div class="row"><input id="newAssociationName" type="text" placeholder="Proposed association name"><button id="addAssociationName">Add name</button></div><p id="addNameMsg" class="hidden"></p></div><h3>2. Executive positions</h3><div id="candidateVotes"></div><label class="option"><input id="finalConfirm" type="checkbox"><span>I confirm these are my final selections.</span></label><button id="submitVote">Submit anonymous vote</button><p id="voteMsg" class="hidden"></p></div>
-<div id="closedView" class="card hidden"><h2>Voting is closed</h2></div><div id="doneView" class="card hidden"><h2>Vote submitted ✓</h2><p>جزاكم الله خيراً. Your ballot was stored without your name or token.</p></div></section>
-</main><script src="config.js"></script><script src="app.js"></script></body></html>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Community Voting Hub</title><link rel="stylesheet" href="styles.css">
+</head>
+<body><main class="wrap">
+<section class="card">
+ <h1 id="appTitle">Community Voting Hub</h1>
+ <p class="muted">One member, one token. The same token is used through all election stages. Ballots are stored separately from member identity.</p>
+</section>
+
+<section id="login" class="card">
+ <h2>Enter your voting token</h2>
+ <input id="token" type="text" placeholder="VOTE-XXXX-XXXX" autocomplete="off">
+ <button id="enterBtn">Continue</button>
+ <p id="loginMsg" class="hidden"></p>
+</section>
+
+<section id="member" class="hidden">
+ <div class="card">
+  <b id="memberName"></b> · <span id="phaseBadge" class="badge"></span>
+ </div>
+
+ <div id="nameVotingView" class="card hidden">
+  <h2>Stage 1 — Association Name Vote</h2>
+  <p class="muted">Choose the name you believe is best for the association.</p>
+  <div id="nameAlreadyVoted" class="success hidden"></div>
+  <div id="nameVoteForm">
+   <div id="associationChoices"></div>
+   <div id="addNameBox" class="notice">
+    <b>Have another suggestion?</b>
+    <p class="small">Add it here. It will appear immediately, be selected for you, and be available to voters who come after you.</p>
+    <div class="row">
+     <input id="newAssociationName" type="text" placeholder="Proposed association name">
+     <button id="addAssociationName">Add name</button>
+    </div>
+    <p id="addNameMsg" class="hidden"></p>
+   </div>
+   <label class="option"><input id="nameConfirm" type="checkbox"><span>I confirm this is my final choice for this round.</span></label>
+   <button id="submitNameVote">Submit association-name vote</button>
+   <p id="nameVoteMsg" class="hidden"></p>
+  </div>
+ </div>
+
+ <div id="nominationView" class="card hidden">
+  <h2>Stage 2 — Self-Nomination</h2>
+  <p id="nominationIntro"></p>
+  <div class="notice">Select one or more positions where you are willing to serve, or leave all unchecked if you do not wish to nominate yourself.</div>
+  <div id="nominationPositions"></div>
+  <button id="saveNomination">Save my nomination choice</button>
+  <p id="nominationMsg" class="hidden"></p>
+ </div>
+
+ <div id="executiveVotingView" class="card hidden">
+  <h2>Stage 3 — Executive Voting</h2>
+  <p class="muted">Vote for one confirmed candidate for each position, or choose Abstain.</p>
+  <div id="candidateVotes"></div>
+  <label class="option"><input id="executiveConfirm" type="checkbox"><span>I confirm these are my final selections.</span></label>
+  <button id="submitExecutiveVote">Submit anonymous executive vote</button>
+  <p id="executiveVoteMsg" class="hidden"></p>
+ </div>
+
+ <div id="closedView" class="card hidden"><h2>Election closed</h2><p>Thank you for your participation.</p></div>
+ <div id="doneView" class="card hidden"></div>
+</section>
+
+<script src="config.js"></script><script src="app.js"></script>
+</body></html>
