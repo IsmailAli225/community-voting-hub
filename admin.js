@@ -1,4 +1,10 @@
-const cfg=window.VOTING_CONFIG,$=s=>document.querySelector(s);let key="",dash=null;
+const cfg=window.VOTING_CONFIG;
+const $=s=>{
+  const el=document.querySelector(s);
+  if(!el) throw new Error(`Admin UI element missing: ${s}. Please hard-refresh the page.`);
+  return el;
+};
+let key="",dash=null;
 async function g(path){const r=await fetch(cfg.apiBase+path,{headers:{"x-admin-key":key}}),d=await r.json();if(!r.ok)throw Error(d.message||d.error||"Failed");return d}
 async function p(path,b){const r=await fetch(cfg.apiBase+path,{method:"POST",headers:{"x-admin-key":key,"content-type":"application/json"},body:JSON.stringify(b)}),d=await r.json();if(!r.ok)throw Error(d.message||d.error||"Failed");return d}
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
@@ -83,5 +89,5 @@ async function renderResults(){
    $("#summaryBody").innerHTML=rows.map(r=>`<tr><td>${esc(r.item)}</td><td><b>${esc(r.name)}</b></td><td>${r.votes}</td><td>${fmt(r.share)}</td></tr>`).join("");
    $("#positionCharts").innerHTML=(d.positions||[]).map(pos=>bars(pos.title,d.executive.tallies?.positions?.[pos.id]||{},total)).join("");
   }
- }catch(e){alert(e.message)}
+ }catch(e){console.error("Admin render error:",e,e.stack);alert(e.message)}
 }
