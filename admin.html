@@ -1,26 +1,103 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Voting Admin</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap">
-<section id="loginBox" class="card"><h1>Voting Admin</h1><input id="adminKey" type="password" placeholder="Admin password"><button id="adminLogin">Open</button></section>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voting Admin</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="wrap">
+<section id="loginBox" class="card">
+  <h1>Voting Admin</h1>
+  <input id="adminKey" type="password" placeholder="Admin password">
+  <button id="adminLogin">Open</button>
+</section>
+
 <section id="dash" class="hidden">
-<div class="card"><h2>Election control</h2><div class="row"><select id="phase"><option>NOMINATION</option><option>VOTING</option><option>CLOSED</option></select><button id="savePhase">Set phase</button></div><label class="option"><input id="allowNames" type="checkbox"><span>Allow live association-name suggestions</span></label></div>
+  <div class="card">
+    <h2>Election control</h2>
+    <div class="row">
+      <select id="phase">
+        <option>NOMINATION</option>
+        <option>VOTING</option>
+        <option>CLOSED</option>
+      </select>
+      <button id="savePhase">Set phase</button>
+    </div>
+    <label class="option">
+      <input id="allowNames" type="checkbox">
+      <span>Allow live association-name suggestions</span>
+    </label>
+  </div>
 
-<div class="card"><h2>Add member</h2>
-<p class="muted small">Add a new eligible member and generate a private token.</p>
-<div class="row"><input id="newMemberName" type="text" placeholder="Full name"><button id="addMemberBtn">Add member & generate token</button></div>
-</div>
+  <div class="card">
+    <h2>Add member</h2>
+    <p class="muted small">Add a new eligible member and generate a private token.</p>
+    <div class="row">
+      <input id="newMemberName" type="text" placeholder="Full name">
+      <button id="addMemberBtn">Add member & generate token</button>
+    </div>
+  </div>
 
-<div class="card"><h2>Members</h2>
-<p class="muted small">Change token if needed. Remove is available only before that member has voted.</p>
-<table><thead><tr><th>Name</th><th>Nomination</th><th>Voted</th><th>Actions</th></tr></thead><tbody id="members"></tbody></table></div>
+  <div class="card">
+    <h2>Members</h2>
+    <p class="muted small">Change token if needed. Remove is available only before that member has voted.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Name</th><th>Nomination</th><th>Voted</th><th>Actions</th></tr></thead>
+        <tbody id="members"></tbody>
+      </table>
+    </div>
+  </div>
 
-<div class="card"><h2>Confirmed self-nominations</h2><table><thead><tr><th>Position</th><th>Candidate</th></tr></thead><tbody id="noms"></tbody></table></div>
+  <div class="card">
+    <h2>Confirmed self-nominations</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Position</th><th>Candidate</th></tr></thead>
+        <tbody id="noms"></tbody>
+      </table>
+    </div>
+  </div>
 
-<div class="card"><h2>Admin password</h2>
-<p class="muted small">After changing it here, the new password replaces the original Cloudflare ADMIN_KEY for admin-page login.</p>
-<input id="newAdminPassword" type="password" placeholder="New admin password (minimum 10 characters)">
-<input id="confirmAdminPassword" type="password" placeholder="Confirm new admin password" style="margin-top:10px">
-<button id="changeAdminPassword">Change admin password</button>
-</div>
+  <div class="card">
+    <h2>Admin password</h2>
+    <p class="muted small">After changing it here, use the new password for future Admin logins.</p>
+    <input id="newAdminPassword" type="password" placeholder="New admin password (minimum 10 characters)">
+    <input id="confirmAdminPassword" type="password" placeholder="Confirm new admin password" style="margin-top:10px">
+    <button id="changeAdminPassword">Change admin password</button>
+  </div>
 
-<div class="card"><h2>Results</h2><button id="showResults">Refresh results</button><pre id="results"></pre></div>
-</section></main><script src="config.js"></script><script src="admin.js"></script></body></html>
+  <div class="card results-card">
+    <div class="results-head">
+      <div>
+        <h2>Election results</h2>
+        <p id="resultsNote" class="muted small">During voting, only turnout is shown. Detailed results are revealed after the election is CLOSED.</p>
+      </div>
+      <button id="showResults">Refresh results</button>
+    </div>
+
+    <div id="turnoutCards" class="stat-grid"></div>
+    <div id="resultsLocked" class="results-locked hidden"></div>
+
+    <div id="detailedResults" class="hidden">
+      <h3>Summary table</h3>
+      <div class="table-scroll">
+        <table class="summary-table">
+          <thead><tr><th>Item</th><th>Top result</th><th>Votes</th><th>Share</th></tr></thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
+      </div>
+
+      <div id="associationChart" class="result-section"></div>
+      <div id="positionCharts"></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script src="config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
