@@ -1,10 +1,4 @@
-const cfg=window.VOTING_CONFIG;
-const $=s=>{
-  const el=document.querySelector(s);
-  if(!el) throw new Error(`Admin UI element missing: ${s}. Please hard-refresh the page.`);
-  return el;
-};
-let key="",dash=null;
+const cfg=window.VOTING_CONFIG,$=s=>document.querySelector(s);let key="",dash=null;
 async function g(path){const r=await fetch(cfg.apiBase+path,{headers:{"x-admin-key":key}}),d=await r.json();if(!r.ok)throw Error(d.message||d.error||"Failed");return d}
 async function p(path,b){const r=await fetch(cfg.apiBase+path,{method:"POST",headers:{"x-admin-key":key,"content-type":"application/json"},body:JSON.stringify(b)}),d=await r.json();if(!r.ok)throw Error(d.message||d.error||"Failed");return d}
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
@@ -26,8 +20,28 @@ function topChoice(obj,total){
 
 async function refresh(){
  dash=await g("/api/admin/dashboard");
- $("#phase").value=dash.phase;$("#allowNames").checked=dash.allowNameSuggestions;
+ if(["NAME_VOTING","NOMINATION","CLOSED"].includes(dash.phase))$("#phase").value=dash.phase;
+ $("#allowNames").checked=dash.allowNameSuggestions;
  $("#nameRoundStatus").innerHTML=`Round <b>${dash.nameRound}</b> — ${dash.nameRoundOpen?"OPEN":"CLOSED"}`;
+ const empty=dash.emptyPositions||[];
+ $("#nominationStatus").innerHTML=`Nomination mode: <b>${dash.nominationScope==="EMPTY"?"EMPTY POSITIONS ONLY":"ALL POSITIONS"}</b><br>${empty.length?`Positions with no candidate: <b>${empty.map(p=>esc(p.title)).join(", ")}</b>`:"Every position currently has at least one candidate."}`;
+ $("#reopenEmptyNominations").disabled=!empty.length;
+
+ const active=dash.activeExecPositions||[];
+ $("#execRoundStatus").innerHTML=dash.execRound
+   ? `Executive round <b>${dash.execRound}</b> — <b>${dash.execRoundOpen?"OPEN":"CLOSED"}</b>${active.length?`<br>Active positions: ${active.map(p=>esc(p.title)).join(", ")}`:""}`
+   : "No executive voting round has started yet.";
+ $("#startExecutiveRound").disabled=dash.execRoundOpen;
+ $("#closeExecutiveRound").disabled=!dash.execRoundOpen;
+
+ $("#positionStatus").innerHTML=(dash.finalisedPositions||[]).map(p=>`<tr>
+   <td>${esc(p.title)}</td><td><span class="status-final">FINALIZED</span></td><td><b>${esc(p.winner)}</b></td>
+   <td><button class="mark-revote-btn secondary" data-id="${esc(p.position_id)}" data-title="${esc(p.title)}">Mark for re-vote</button></td>
+ </tr>`).join("") +
+ (dash.unresolvedPositions||[]).map(p=>`<tr>
+   <td>${esc(p.title)}</td><td><span class="status-pending">${esc(p.status||"PENDING")}</span></td><td>—</td><td>—</td>
+ </tr>`).join("");
+
  $("#closeNameRound").disabled=dash.phase!=="NAME_VOTING"||!dash.nameRoundOpen;
  $("#startRunoff").disabled=dash.phase!=="NAME_VOTING"||dash.nameRoundOpen;
 
@@ -35,7 +49,7 @@ async function refresh(){
   <td>${esc(m.display_name)}</td>
   <td>${Number(m.name_voted_round||0)===Number(dash.nameRound)?"✓":""}</td>
   <td>${m.nomination_submitted?"✓":""}</td>
-  <td>${m.voted?"✓":""}</td>
+  <td>${Number(m.exec_voted_round||0)===Number(dash.execRound)&&dash.execRound?"✓":""}</td>
   <td class="member-actions">
    <button class="change-token-btn" data-id="${m.id}" data-name="${esc(m.display_name)}">Change token</button>
    <button class="remove-member-btn" data-id="${m.id}" data-name="${esc(m.display_name)}" data-voted="${m.voted?1:0}" ${m.voted?"disabled":""}>Remove</button>
@@ -52,11 +66,35 @@ $("#members").addEventListener("click",async e=>{
  if(r){if(r.dataset.voted==="1")return alert("This member has already cast an anonymous executive ballot and cannot be permanently removed.");if(!confirm(`Remove ${r.dataset.name}? Their token and self-nominations will be removed.`))return;try{alert((await p("/api/admin/remove-member",{member_id:Number(r.dataset.id)})).message);await refresh()}catch(err){alert(err.message)}}
 });
 
+$("#positionStatus").addEventListener("click",async e=>{
+ const b=e.target.closest(".mark-revote-btn");if(!b)return;
+ if(!confirm(`Mark ${b.dataset.title} for a new vote?\n\nIts current final result will be unlocked. Other finalised positions will remain unchanged.`))return;
+ try{alert((await p("/api/admin/mark-position-revote",{position_id:b.dataset.id})).message);await refresh()}catch(err){alert(err.message)}
+});
+
+$("#startExecutiveRound").onclick=async()=>{
+ if(!confirm("Start a new executive voting round for ALL currently unresolved positions?\n\nFinalised positions will stay locked and will not appear to voters."))return;
+ try{alert((await p("/api/admin/start-executive-round",{})).message);await refresh()}catch(e){alert(e.message)}
+};
+$("#closeExecutiveRound").onclick=async()=>{
+ if(!confirm("Close this executive voting round and reveal/finalise its results?\n\nClear unique winners will be locked. Ties or unresolved positions will remain available for another round."))return;
+ try{const d=await p("/api/admin/close-executive-round",{});alert(d.message);await refresh()}catch(e){alert(e.message)}
+};
+
 $("#adminLogin").onclick=async()=>{key=$("#adminKey").value;try{await refresh();$("#loginBox").classList.add("hidden");$("#dash").classList.remove("hidden")}catch(e){alert(e.message)}};
 $("#savePhase").onclick=async()=>{try{await p("/api/admin/set-phase",{phase:$("#phase").value});await refresh()}catch(e){alert(e.message)}};
 $("#allowNames").onchange=async()=>{try{await p("/api/admin/set-name-suggestions",{enabled:$("#allowNames").checked})}catch(e){alert(e.message)}};
 $("#closeNameRound").onclick=async()=>{if(!confirm("Close the current association-name voting round? No more name votes will be accepted in this round."))return;try{alert((await p("/api/admin/close-name-round",{})).message);await refresh()}catch(e){alert(e.message)}};
 $("#startRunoff").onclick=async()=>{if(!confirm("Start a new run-off round using the top two results? The SAME member tokens will be used again."))return;try{const d=await p("/api/admin/start-runoff",{});alert(`${d.message}\n\nFinalists:\n${d.finalists.join("\n")}`);await refresh()}catch(e){alert(e.message)}};
+$("#resetNominations").onclick=async()=>{
+ if(!confirm("Reset ALL previous self-nominations?\n\nThis will NOT change member Tokens or association-name votes. Everyone will be able to nominate themselves again after the final association name is confirmed."))return;
+ try{alert((await p("/api/admin/reset-nominations",{})).message);await refresh()}catch(e){alert(e.message)}
+};
+$("#reopenEmptyNominations").onclick=async()=>{
+ if(!confirm("Reopen self-nomination ONLY for positions that currently have no candidate? Existing nominations for filled positions will stay unchanged."))return;
+ try{const d=await p("/api/admin/reopen-empty-nominations",{});alert(`${d.message}\n\n${d.positions.map(x=>x.title).join("\n")}`);await refresh()}catch(e){alert(e.message)}
+};
+
 $("#addMemberBtn").onclick=async()=>{const name=$("#newMemberName").value.trim();if(!name)return alert("Enter the member name.");try{const d=await p("/api/admin/add-member",{display_name:name});$("#newMemberName").value="";giveToken(d.display_name,d.token,"Member added successfully.");await refresh()}catch(e){alert(e.message)}};
 $("#changeAdminPassword").onclick=async()=>{const a=$("#newAdminPassword").value,b=$("#confirmAdminPassword").value;if(a.length<10)return alert("Use at least 10 characters.");if(a!==b)return alert("Passwords do not match.");if(!confirm("Change the admin password?"))return;try{const d=await p("/api/admin/change-password",{new_password:a});key=a;$("#newAdminPassword").value="";$("#confirmAdminPassword").value="";alert(d.message)}catch(e){alert(e.message)}};
 $("#showResults").onclick=renderResults;
@@ -64,6 +102,7 @@ $("#showResults").onclick=renderResults;
 async function renderResults(){
  try{
   const d=await g("/api/admin/results");
+
   $("#nameTurnoutCards").innerHTML=stats(d.eligible,d.name.voted,d.name.remaining,d.name.turnout_pct);
   if(d.name.open){
    $("#nameDetailedResults").classList.add("hidden");$("#nameResultsLocked").classList.remove("hidden");
@@ -77,17 +116,26 @@ async function renderResults(){
    $("#nameChart").innerHTML=bars(`Association name — round ${d.name.round}`,d.name.tallies,d.name.voted);
   }
 
-  $("#execTurnoutCards").innerHTML=stats(d.eligible,d.executive.voted,d.executive.remaining,d.executive.turnout_pct);
-  if(!d.executive.results_visible){
+  const ex=d.executive;
+  $("#execTurnoutCards").innerHTML=stats(d.eligible,ex.voted,ex.remaining,ex.turnout_pct);
+
+  if(!ex.round){
    $("#execDetailedResults").classList.add("hidden");$("#execResultsLocked").classList.remove("hidden");
-   $("#execResultsLocked").innerHTML=`🔒 <div><b>Executive results are hidden.</b><br><span class="muted small">They will be revealed when the whole election is set to CLOSED.</span></div>`;
+   $("#execResultsLocked").innerHTML="No executive voting round has started yet.";
+  }else if(ex.open){
+   $("#execDetailedResults").classList.add("hidden");$("#execResultsLocked").classList.remove("hidden");
+   $("#execResultsLocked").innerHTML=`🔒 <div><b>Executive round ${ex.round} is open.</b><br><span class="muted small">Only turnout is visible until the round is closed.</span></div>`;
   }else{
    $("#execResultsLocked").classList.add("hidden");$("#execDetailedResults").classList.remove("hidden");
-   const total=d.executive.ballots||0,rows=[];
-   if(!d.name.open&&d.name.summary){rows.push({item:"Association name",...topChoice(d.name.tallies,d.name.voted)})}
-   for(const pos of d.positions||[]){rows.push({item:pos.title,...topChoice(d.executive.tallies?.positions?.[pos.id]||{},total)})}
-   $("#summaryBody").innerHTML=rows.map(r=>`<tr><td>${esc(r.item)}</td><td><b>${esc(r.name)}</b></td><td>${r.votes}</td><td>${fmt(r.share)}</td></tr>`).join("");
-   $("#positionCharts").innerHTML=(d.positions||[]).map(pos=>bars(pos.title,d.executive.tallies?.positions?.[pos.id]||{},total)).join("");
+   $("#positionCharts").innerHTML=(ex.active_positions||[]).map(pos=>bars(`${pos.title} — round ${ex.round}`,ex.round_tallies?.[pos.id]||{},ex.voted)).join("") || "<div class='empty-results'>No positions were active in the latest round.</div>";
   }
- }catch(e){console.error("Admin render error:",e,e.stack);alert(e.message)}
+
+  $("#summaryBody").innerHTML=(ex.states||[]).map(s=>`<tr>
+    <td>${esc(s.title)}</td>
+    <td>${s.status==="FINALIZED"?"✅ FINALIZED":esc(s.status||"PENDING")}</td>
+    <td><b>${esc(s.winner||"—")}</b></td>
+    <td>${s.winning_votes??"—"}${s.total_votes?` / ${s.total_votes}`:""}</td>
+    <td>${s.finalised_round??"—"}</td>
+  </tr>`).join("");
+ }catch(e){alert(e.message)}
 }

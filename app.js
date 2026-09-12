@@ -15,9 +15,9 @@ async function load(){
  $("#memberName").textContent=boot.member.display_name;$("#phaseBadge").textContent=phaseLabel(boot.phase);
  ["nameVotingView","nominationView","executiveVotingView","closedView","doneView"].forEach(id=>$("#"+id).classList.add("hidden"));
 
- if(boot.completed){
+ if(boot.completed && boot.phase==="EXECUTIVE_VOTING"){
   $("#doneView").classList.remove("hidden");
-  $("#doneView").innerHTML="<h2>Executive vote already submitted ✓</h2><p>Your final executive vote has already been recorded. This token cannot be used to vote again.</p>";
+  $("#doneView").innerHTML=`<h2>Vote submitted for round ${boot.execRound} ✓</h2><p>Your vote for the currently active position(s) has been recorded. Keep the same token: if another executive round is needed later, the token will work again for those unresolved positions.</p>`;
   return;
  }
  if(boot.phase==="NAME_VOTING"){$("#nameVotingView").classList.remove("hidden");renderNameStage()}
@@ -79,7 +79,10 @@ $("#submitNameVote").onclick=async()=>{
 };
 
 function renderNomination(){
- $("#nominationIntro").innerHTML=`Choose the position(s) where <b>${esc(boot.member.display_name)}</b> is willing to serve.`;
+ const limited=boot.nominationScope==="EMPTY";
+ $("#nominationIntro").innerHTML=limited
+   ? `<b>Reopened nomination:</b> only positions that currently have no candidate are shown. Existing nominations for other positions stay unchanged.`
+   : `Choose the position(s) where <b>${esc(boot.member.display_name)}</b> is willing to serve.`;
  $("#nominationPositions").innerHTML=boot.positions.map(p=>`
  <div class="position"><label class="option">
   <input type="checkbox" value="${esc(p.id)}" ${boot.myNominations.includes(p.id)?"checked":""}>
@@ -98,25 +101,54 @@ $("#saveNomination").onclick=async()=>{
 async function renderExecutiveVote(){
  const c=await api("/api/candidates",{token});
  $("#candidateVotes").innerHTML=c.positions.map(p=>`
- <div class="question"><h3>${esc(p.title)}</h3><p class="muted small">${esc(p.description)}</p>
+ <div class="question executive-position" data-position="${esc(p.id)}"><h3>${esc(p.title)}</h3><p class="muted small">${esc(p.description)}</p>
  ${p.candidates.map(n=>`<label class="option"><input type="radio" name="p_${esc(p.id)}" value="${esc(n)}"><span>${esc(n)}</span></label>`).join("")}
- ${!p.candidates.length?"<p class='warning'>No confirmed candidate for this position.</p>":""}
+ ${!p.candidates.length?"<p class='warning'>No confirmed candidate for this position. Voting should not have been opened; please contact the administrator.</p>":""}
  <label class="option"><input type="radio" name="p_${esc(p.id)}" value="Abstain"><span>Abstain / امتنع</span></label>
  </div>`).join("");
+ $("#candidateVotes").addEventListener("change",updateVoteReview);
+ updateVoteReview();
+}
+
+function executiveSelections(){
+ const positions={};
+ for(const p of boot.allPositions||boot.positions){
+  const x=$(`input[name="p_${CSS.escape(p.id)}"]:checked`);
+  positions[p.id]=x?x.value:"";
+ }
+ return positions;
+}
+function duplicateExecutiveNames(positions){
+ const seen=new Set(),dups=new Set();
+ for(const name of Object.values(positions)){
+  if(!name||name==="Abstain")continue;
+  const k=name.toLocaleLowerCase();
+  if(seen.has(k))dups.add(name); else seen.add(k);
+ }
+ return [...dups];
+}
+function updateVoteReview(){
+ const selections=executiveSelections(),all=boot.allPositions||boot.positions;
+ $("#voteReview").innerHTML=all.map(p=>`<div class="review-row"><span>${esc(p.title)}</span><b>${esc(selections[p.id]||"Not selected yet")}</b></div>`).join("");
+ const dups=duplicateExecutiveNames(selections);
+ if(dups.length){
+  $("#duplicateWarning").classList.remove("hidden");
+  $("#duplicateWarning").textContent=`Please change your selections: ${dups.join(", ")} has been selected for more than one position.`;
+ }else{
+  $("#duplicateWarning").classList.add("hidden"); $("#duplicateWarning").textContent="";
+ }
 }
 
 $("#submitExecutiveVote").onclick=async()=>{
- const positions={};
- for(const p of boot.positions){
-  const x=$(`input[name="p_${CSS.escape(p.id)}"]:checked`);
-  if(!x)return msg($("#executiveVoteMsg"),`Please choose a response for ${p.title}.`,"error");
-  positions[p.id]=x.value;
- }
- if(!$("#executiveConfirm").checked)return msg($("#executiveVoteMsg"),"Please confirm your final selections.","error");
+ const positions=executiveSelections(),all=boot.allPositions||boot.positions;
+ for(const p of all){if(!positions[p.id])return msg($("#executiveVoteMsg"),`Please choose a response for ${p.title}.`,"error")}
+ const dups=duplicateExecutiveNames(positions);
+ if(dups.length)return msg($("#executiveVoteMsg"),`The same person cannot be selected for two positions. Please change: ${dups.join(", ")}.`,"error");
+ if(!$("#executiveConfirm").checked)return msg($("#executiveVoteMsg"),"Please review all positions and confirm your final selections.","error");
  $("#submitExecutiveVote").disabled=true;
  try{
   await api("/api/vote-executive",{token,positions});
   $("#executiveVotingView").classList.add("hidden");$("#doneView").classList.remove("hidden");
-  $("#doneView").innerHTML="<h2>Executive vote submitted ✓</h2><p>جزاكم الله خيراً. Your anonymous executive ballot has been recorded and this token cannot vote again.</p>";
+  $("#doneView").innerHTML=`<h2>Executive round vote submitted ✓</h2><p>جزاكم الله خيراً. Your anonymous vote for the active position(s) has been recorded. Finalised positions will stay locked; if another round is needed for unresolved positions, use this same Token again.</p>`;
  }catch(e){msg($("#executiveVoteMsg"),e.message,"error");$("#submitExecutiveVote").disabled=false}
 };

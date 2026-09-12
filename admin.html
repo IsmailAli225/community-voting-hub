@@ -1,9 +1,9 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Voting Admin</title><link rel="stylesheet" href="styles.css?v=9.1"></head><body><main class="wrap">
+<title>Voting Admin</title><link rel="stylesheet" href="styles.css"></head><body><main class="wrap">
 
 <section id="loginBox" class="card">
- <h1>Voting Admin <small style="font-size:.45em;opacity:.55">v9.1</small></h1>
+ <h1>Voting Admin</h1>
  <input id="adminKey" type="password" placeholder="Admin password">
  <button id="adminLogin">Open</button>
 </section>
@@ -16,7 +16,6 @@
    <select id="phase">
     <option value="NAME_VOTING">1 — Association Name Vote</option>
     <option value="NOMINATION">2 — Self-Nomination</option>
-    <option value="EXECUTIVE_VOTING">3 — Executive Voting</option>
     <option value="CLOSED">4 — Closed</option>
    </select>
    <button id="savePhase">Set phase</button>
@@ -32,6 +31,34 @@
    <button id="startRunoff" class="secondary">Start run-off with top two</button>
   </div>
   <p class="muted small">If no single name reaches 75%, close the round, review the result, then start a run-off. The same Tokens remain valid. A tie at the second-place cut-off is carried into the run-off rather than being broken arbitrarily.</p>
+ </div>
+
+ <div class="card">
+  <h2>Nomination controls</h2>
+  <div id="nominationStatus" class="notice"></div>
+  <div class="actions">
+   <button id="resetNominations" class="danger">Reset all previous self-nominations</button>
+   <button id="reopenEmptyNominations" class="secondary">Reopen nominations for empty positions only</button>
+  </div>
+  <p class="muted small">Reset removes the old self-nominations only; it does not change member Tokens or association-name votes. The second button is for any position that finishes with no candidate.</p>
+ </div>
+
+ <div class="card">
+  <h2>Executive election rounds</h2>
+  <div id="execRoundStatus" class="notice"></div>
+  <div class="actions">
+   <button id="startExecutiveRound">Start voting for unresolved positions</button>
+   <button id="closeExecutiveRound" class="secondary">Close current round & finalise completed positions</button>
+  </div>
+  <p class="muted small">Only unresolved positions are included in a new round. Once a position has a clear winner it is finalised and will not appear in later rounds. Ties, an Abstain lead, or winner conflicts remain unresolved and can be re-voted.</p>
+ </div>
+
+ <div class="card">
+  <h2>Position status</h2>
+  <div class="table-scroll"><table>
+   <thead><tr><th>Position</th><th>Status</th><th>Final winner</th><th>Action</th></tr></thead>
+   <tbody id="positionStatus"></tbody>
+  </table></div>
  </div>
 
  <div class="card">
@@ -78,15 +105,17 @@
   <div id="execTurnoutCards" class="stat-grid"></div>
   <div id="execResultsLocked" class="results-locked hidden"></div>
   <div id="execDetailedResults" class="hidden">
-   <h3>Final summary table</h3>
-   <div class="table-scroll"><table class="summary-table">
-    <thead><tr><th>Item</th><th>Top result</th><th>Votes</th><th>Share</th></tr></thead>
-    <tbody id="summaryBody"></tbody>
-   </table></div>
+   <h3>Current / latest round results</h3>
    <div id="positionCharts"></div>
   </div>
+
+  <h3 style="margin-top:32px">Finalised executive structure</h3>
+  <div class="table-scroll"><table class="summary-table">
+   <thead><tr><th>Position</th><th>Status</th><th>Final winner</th><th>Winning votes</th><th>Round</th></tr></thead>
+   <tbody id="summaryBody"></tbody>
+  </table></div>
  </div>
 </section>
 
-<script src="config.js?v=9.1"></script><script src="admin.js?v=9.1"></script>
+<script src="config.js"></script><script src="admin.js"></script>
 </body></html>
